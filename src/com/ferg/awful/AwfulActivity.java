@@ -1,9 +1,8 @@
 package com.ferg.awful;
 
-import android.app.Activity;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
+
+import com.github.droidfu.activities.BetterDefaultActivity;
 
 /**
  * Convenience class to avoid having to call a configurator's lifecycle methods everywhere. This
@@ -14,7 +13,7 @@ import android.preference.PreferenceManager;
  * 
  * This class also provides a few helper methods for grabbing preferences and the like.
  */
-public class AwfulActivity extends Activity {
+public class AwfulActivity extends BetterDefaultActivity {
 	private ActivityConfigurator mConf;
 	
 	@Override
@@ -22,6 +21,7 @@ public class AwfulActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		mConf = new ActivityConfigurator(this);
 		mConf.onCreate();
+		
 	}
 	
 	@Override

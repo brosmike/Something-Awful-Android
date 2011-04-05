@@ -47,7 +47,7 @@ import android.widget.TextView;
  * In a real application, you would probably use the shortcut intent to display specific content
  * or start a particular operation.
  */
-public class UserCPShortcutActivity extends Activity {
+public class UserCPShortcutActivity extends AwfulActivity {
 
     private static final String EXTRA_KEY = "com.ferg.awful.UserCPShortcutActivity";
 
