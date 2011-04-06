@@ -27,15 +27,14 @@
 
 package com.ferg.awful.thread;
 
-import android.os.Parcel;
-import android.os.Parcelable;
-import android.util.Log;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.htmlcleaner.TagNode;
-import org.htmlcleaner.XPatherException;
+
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.util.Log;
 
 import com.ferg.awful.constants.Constants;
 import com.ferg.awful.network.NetworkUtils;
@@ -131,56 +130,55 @@ public class AwfulThread extends AwfulPagedItem implements Parcelable {
             AwfulThread thread = new AwfulThread();
             TagNode node = (TagNode) current;
 
-            try {
-                String threadId = node.getAttributeByName("id");
-                thread.setThreadId(threadId.replaceAll("thread", ""));
-            } catch (NullPointerException e) {
-                // If we can't parse a row, just skip it
-                e.printStackTrace();
-                continue;
+            if(!node.hasAttribute("id")) {
+            	// This row is useless to us. Skip it.
+            	continue;
+            }
+            
+            String threadId = node.getAttributeByName("id");
+            thread.setThreadId(threadId.replaceAll("thread", ""));
+            
+            Object[] nodeList = node.evaluateXPath(THREAD_TITLE);
+            if (nodeList.length > 0) {
+                thread.setTitle(((TagNode) nodeList[0]).getText().toString().trim());
             }
 
-                Object[] nodeList = node.evaluateXPath(THREAD_TITLE);
-                if (nodeList.length > 0) {
-                    thread.setTitle(((TagNode) nodeList[0]).getText().toString().trim());
-                }
+            nodeList = node.evaluateXPath(THREAD_STICKY);
+            if (nodeList.length > 0) {
+                thread.setSticky(true);
+            } else {
+                thread.setSticky(false);
+            }
 
-                nodeList = node.evaluateXPath(THREAD_STICKY);
-                if (nodeList.length > 0) {
-                    thread.setSticky(true);
-                } else {
-                    thread.setSticky(false);
-                }
+            nodeList = node.evaluateXPath(THREAD_ICON);
+            if (nodeList.length > 0) {
+                thread.setIcon(((TagNode) nodeList[0]).getAttributeByName("src"));
+            }
 
-                nodeList = node.evaluateXPath(THREAD_ICON);
-                if (nodeList.length > 0) {
-                    thread.setIcon(((TagNode) nodeList[0]).getAttributeByName("src"));
-                }
+            nodeList = node.evaluateXPath(THREAD_AUTHOR);
+            if (nodeList.length > 0) {
+                TagNode authorNode = (TagNode) nodeList[0];
 
-                nodeList = node.evaluateXPath(THREAD_AUTHOR);
-                if (nodeList.length > 0) {
-                    TagNode authorNode = (TagNode) nodeList[0];
+                // There's got to be a better way to do this
+                authorNode.removeChild(authorNode.findElementHavingAttribute("href", false));
 
-                    // There's got to be a better way to do this
-                    authorNode.removeChild(authorNode.findElementHavingAttribute("href", false));
+                thread.setAuthor(authorNode.getText().toString().trim());
+            }
 
-                    thread.setAuthor(authorNode.getText().toString().trim());
-                }
+            nodeList = node.evaluateXPath(UNREAD_POSTS);
+            if (nodeList.length > 0) {
+                thread.setUnreadCount(Integer.parseInt(
+                            ((TagNode) nodeList[0]).getText().toString().trim()));
+            } else {
+				nodeList = node.evaluateXPath(UNREAD_UNDO);
+				if (nodeList.length > 0) {
+					thread.setUnreadCount(0);
+				} else {
+					thread.setUnreadCount(-1);
+				} 
+            }
 
-                nodeList = node.evaluateXPath(UNREAD_POSTS);
-                if (nodeList.length > 0) {
-                    thread.setUnreadCount(Integer.parseInt(
-                                ((TagNode) nodeList[0]).getText().toString().trim()));
-                } else {
-					nodeList = node.evaluateXPath(UNREAD_UNDO);
-					if (nodeList.length > 0) {
-						thread.setUnreadCount(0);
-					} else {
-						thread.setUnreadCount(-1);
-					} 
-                }
-
-                result.add(thread);
+            result.add(thread);
         }
 
         return result;

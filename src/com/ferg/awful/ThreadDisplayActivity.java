@@ -53,7 +53,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
@@ -68,6 +67,7 @@ import android.widget.Toast;
 import com.commonsware.cwac.adapter.AdapterWrapper;
 import com.ferg.awful.constants.Constants;
 import com.ferg.awful.htmlwidget.HtmlView;
+import com.ferg.awful.image.DrawableManager;
 import com.ferg.awful.network.NetworkUtils;
 import com.ferg.awful.quickaction.ActionItem;
 import com.ferg.awful.quickaction.QuickAction;
@@ -80,6 +80,8 @@ import com.ferg.awful.widget.NumberPicker;
 public class ThreadDisplayActivity extends AwfulActivity implements OnSharedPreferenceChangeListener {
     private static final String TAG = "ThreadDisplayActivity";
 
+    private DrawableManager mDrawableManager;
+    
 	private AwfulThread mThread;
     private FetchThreadTask mFetchTask;
     private ParsePostQuoteTask mPostQuoteTask;
@@ -105,6 +107,7 @@ public class ThreadDisplayActivity extends AwfulActivity implements OnSharedPref
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         
+        mDrawableManager = new DrawableManager(this);
         mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         mDefaultPostFontSize = mPrefs.getInt("default_post_font_size", 15);
         mDefaultPostFontColor = mPrefs.getInt("default_post_font_color", getResources().getColor(R.color.default_post_font));
@@ -757,7 +760,7 @@ public class ThreadDisplayActivity extends AwfulActivity implements OnSharedPref
             
             viewHolder.username.setText(current.getUsername());
             viewHolder.postDate.setText("Posted on " + current.getDate());
-            viewHolder.postBody.setHtml(current.getContent());
+            viewHolder.postBody.setHtml(current.getContent(), mDrawableManager);
 
             // These are done per render instead of at view construction because there's
             // apparently no good way to force view reconstruction after, say, the user

@@ -28,15 +28,18 @@
 package com.ferg.awful.thread;
 
 import java.util.ArrayList;
+
 import org.htmlcleaner.CleanerProperties;
 import org.htmlcleaner.HtmlCleaner;
 import org.htmlcleaner.SimpleHtmlSerializer;
 import org.htmlcleaner.TagNode;
 import org.htmlcleaner.XPatherException;
+
 import android.util.Log;
 
 import com.ferg.awful.constants.Constants;
 import com.ferg.awful.network.NetworkUtils;
+import com.ferg.awful.network.UrlCleaner;
 
 public class AwfulPost {
     private static final String TAG = "AwfulPost";
@@ -360,10 +363,12 @@ public class AwfulPost {
 
                 nodeList = node.evaluateXPath(POSTBODY);
                 if (nodeList.length > 0) {
+                	TagNode root = (TagNode) nodeList[0];
+                	root.traverse(new UrlCleaner(Constants.BASE_URL));
                     SimpleHtmlSerializer serializer = 
                         new SimpleHtmlSerializer(cleaner.getProperties());
 
-                    post.setContent(serializer.getAsString((TagNode) nodeList[0]));
+                    post.setContent(serializer.getAsString(root));
                 }
                 
                 // We know how to make the links, but we need to note what links are active for the poster

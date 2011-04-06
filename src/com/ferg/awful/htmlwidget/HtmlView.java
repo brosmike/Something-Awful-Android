@@ -16,9 +16,19 @@
 
 package com.ferg.awful.htmlwidget;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
+import java.lang.reflect.Array;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.RejectedExecutionException;
+
 import org.w3c.dom.Element;
-import org.xml.sax.Attributes;
-import org.xml.sax.XMLReader;
 
 import android.content.Context;
 import android.content.Intent;
@@ -45,16 +55,8 @@ import android.view.MotionEvent;
 import android.webkit.WebView;
 import android.widget.TextView;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.ref.SoftReference;
-import java.lang.reflect.Array;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.RejectedExecutionException;
+import com.ferg.awful.image.DrawableManager;
+import com.ferg.awful.image.DrawableManager.OnDrawableLoadedListener;
 
 /**
  * A light-weight alternative to {@link WebView}.
@@ -122,6 +124,13 @@ public final class HtmlView extends TextView {
             return drawable;
         }
     }
+    
+    /**
+     * Creates an invisible {@link Drawable}.
+     */
+    protected Drawable getErrorDrawable() {
+        return mDrawableMissingImage;
+    }
 
     /**
      * Returns the video ID for a YouTube {@link Uri}.
@@ -160,6 +169,9 @@ public final class HtmlView extends TextView {
         sUriMatcher.addURI("www.youtube.com", "v/*", EMBED_YOUTUBE);
     }
 
+    
+    private DrawableManager mDrawableManager;
+    
     /**
      * Cache of recently used images.
      */
@@ -308,7 +320,7 @@ public final class HtmlView extends TextView {
         super.onRestoreInstanceState(ss.getSuperState());
         String html = ss.mHtml;
         if (html != null) {
-            setHtml(html);
+            setHtml(html, null);
         }
     }
 
@@ -328,6 +340,7 @@ public final class HtmlView extends TextView {
         }
     }
 
+    //TODO: FIXME
     private void handleEmbed(Element node, Editable output) {
         String src = node.getAttribute("src");
         String type = node.getAttribute("type");
@@ -401,29 +414,116 @@ public final class HtmlView extends TextView {
         }
     }
 
-    private void handleImg(Element node, Editable output) {
-        String src = node.getAttribute("src");
-        String alt = node.getAttribute("alt");
-        String title = node.getAttribute("title");
-        
-        int start = output.length();
-        output.append("\uFFFC");
-        int end = output.length();
-
-        Bitmap bitmap = getImage(src);
-        if (bitmap != null) {
-            Drawable drawable = createBitmapDrawable(bitmap);
-            HtmlImageSpan span = new HtmlImageSpan(drawable, src, title, alt);
-            output.setSpan(span, start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        } else {
-            Drawable placeholder = getPlaceholderDrawable();
-            HtmlImageSpan span = new HtmlImageSpan(placeholder, src, title, alt);
-            output.setSpan(span, start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            if (src != null) {
-                ImageTask task = new ImageTask(src, span);
-                executeImageTask(task);
+    private Editable getOriginalEditableText() {
+    	return HtmlView.super.getEditableText();
+    }
+    
+    private static class ImageLoadedListener implements OnDrawableLoadedListener {
+    	// This stuff is leaky. Careful to null it when done
+    	private volatile HtmlImageSpan mPlaceholder = null;
+    	private WeakReference<Editable> output;
+    	private WeakReference<HtmlView> container;
+    	
+    	// This stuff is safe
+    	private String src;
+    	private String title;
+    	private String alt;
+    	
+    	private int location;
+    	
+    	public ImageLoadedListener(String aSrc, String aTitle, String aAlt, Editable aOutput, HtmlView aContainer) {
+    		src = aSrc;
+    		title = aTitle;
+    		alt = aAlt;
+    		output = new WeakReference<Editable>(aOutput);
+    		location = aOutput.length();
+    		container = new WeakReference<HtmlView>(aContainer);
+    	}
+    	
+    	private HtmlImageSpan setSpan(Drawable d) {
+    		Editable out = output.get();
+            if(out == null) return null;
+            
+            HtmlImageSpan span = new HtmlImageSpan(d, src, title, alt);
+            out.setSpan(span, location, location, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            return span;
+    	}
+    	
+    	private void replaceSpan(HtmlImageSpan span, Drawable newDrawable) {
+    		HtmlView view = container.get();
+    		if(view == null) return;
+    		
+            if (span != null) {
+                // Call super.getEditableText() because
+                // this.getEditableText() always returns null.
+                Editable editableText = view.getOriginalEditableText();
+                if (editableText != null) {
+                    int start = editableText.getSpanStart(span);
+                    int end = editableText.getSpanEnd(span);
+                    if (start != -1 && end != -1) {
+                        editableText.removeSpan(span);
+                        String src = span.getSource();
+                        String alt = span.getAlt();
+                        String title = span.getTitle();
+                        HtmlImageSpan newSpan = new HtmlImageSpan(newDrawable, src, title, alt);
+                        editableText.setSpan(newSpan, start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                }
             }
         }
+    	
+    	private void setOrReplaceSpan(Drawable d) {
+    		if(mPlaceholder != null) {
+    			replaceSpan(mPlaceholder, d);
+    			mPlaceholder = null; // let it get GC'd if it likes
+    		} else {
+    			setSpan(d);
+    		}
+    	}
+    	
+		@Override
+		public void beforeFetch(Context context, String urlString) {
+			HtmlView view = container.get();
+    		if(view == null) return;
+    		
+			mPlaceholder = setSpan(view.getPlaceholderDrawable());;
+		}
+		@Override
+		public void afterFetch(Context ctx, Drawable d) {
+			setBoundsToIntrinsicSize(d);
+			setOrReplaceSpan(d);
+		}
+		@Override
+    	public void onFetchError(Context ctx, Exception error) {
+    		Log.w(TAG, "Error loading image at "+src, error);
+    		
+    		HtmlView view = container.get();
+    		if(view == null) return;
+    		
+    		setOrReplaceSpan(view.getErrorDrawable());
+    	}
+	}
+    
+    private void handleImg(final Element node, final Editable output) {
+        final String src = node.getAttribute("src");
+        final String alt = node.getAttribute("alt");
+        final String title = node.getAttribute("title");
+        
+        final int start = output.length();
+        output.append("\uFFFC");
+        final int end = output.length();
+
+        if(mDrawableManager == null) {
+        	Log.w(TAG, "Attempted image fetch without drawable manager");
+        	Drawable d = getErrorDrawable();
+            HtmlImageSpan span = new HtmlImageSpan(d, src, title, alt);
+            output.setSpan(span, start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            return;
+        }
+                
+        OnDrawableLoadedListener callback = new ImageLoadedListener(src, title, alt, output, this);
+    	
+    	mDrawableManager.fetchDrawableAsync(getContext(), src, callback);
     }
 
     private void executeImageTask(ImageTask task) {
@@ -451,8 +551,8 @@ public final class HtmlView extends TextView {
             // indirectly by the superclass constructor.
         }
     }
-
-    public void setHtml(String source) {
+    
+    public void setHtml(String source, DrawableManager drawableManager) {
         if (source == null) {
             setText(null);
             return;
@@ -460,6 +560,7 @@ public final class HtmlView extends TextView {
         if (source.equals(mHtml)) {
             return;
         }
+        mDrawableManager = drawableManager;
         mHtml = source;
 
         cancelTasks();

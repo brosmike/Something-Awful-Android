@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -17,7 +16,7 @@ public class DrawableFactory {
 		} else if(isGif(bytes)) {
 			return decodeGifByteArray(bytes);
 		} else {
-			return new BitmapDrawable(BitmapFactory.decodeByteArray(bytes, 0, 0));
+			return Drawable.createFromStream(new ByteArrayInputStream(bytes), "src");
 		}
 	}
 	
