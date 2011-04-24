@@ -55,8 +55,9 @@ import android.view.MotionEvent;
 import android.webkit.WebView;
 import android.widget.TextView;
 
-import com.ferg.awful.image.DrawableManager;
-import com.ferg.awful.image.DrawableManager.OnDrawableLoadedListener;
+import com.ferg.awful.graphics.Graphic;
+import com.ferg.awful.graphics.GraphicLoader;
+import com.ferg.awful.graphics.GraphicLoader.OnGraphicLoadedListener;
 
 /**
  * A light-weight alternative to {@link WebView}.
@@ -170,7 +171,7 @@ public final class HtmlView extends TextView {
     }
 
     
-    private DrawableManager mDrawableManager;
+    private GraphicLoader mDrawableManager;
     
     /**
      * Cache of recently used images.
@@ -418,7 +419,7 @@ public final class HtmlView extends TextView {
     	return HtmlView.super.getEditableText();
     }
     
-    private static class ImageLoadedListener implements OnDrawableLoadedListener {
+    private static class ImageLoadedListener implements OnGraphicLoadedListener {
     	// This stuff is leaky. Careful to null it when done
     	private volatile HtmlImageSpan mPlaceholder = null;
     	private WeakReference<Editable> output;
@@ -489,7 +490,8 @@ public final class HtmlView extends TextView {
 			mPlaceholder = setSpan(view.getPlaceholderDrawable());;
 		}
 		@Override
-		public void afterFetch(Context ctx, Drawable d) {
+		public void afterFetch(Context ctx, Graphic g) {
+			Drawable d = g.toDrawable(ctx.getResources());
 			setBoundsToIntrinsicSize(d);
 			setOrReplaceSpan(d);
 		}
@@ -521,7 +523,7 @@ public final class HtmlView extends TextView {
             return;
         }
                 
-        OnDrawableLoadedListener callback = new ImageLoadedListener(src, title, alt, output, this);
+        OnGraphicLoadedListener callback = new ImageLoadedListener(src, title, alt, output, this);
     	
     	mDrawableManager.fetchDrawableAsync(getContext(), src, callback);
     }
@@ -552,7 +554,7 @@ public final class HtmlView extends TextView {
         }
     }
     
-    public void setHtml(String source, DrawableManager drawableManager) {
+    public void setHtml(String source, GraphicLoader drawableManager) {
         if (source == null) {
             setText(null);
             return;

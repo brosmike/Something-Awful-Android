@@ -1,6 +1,5 @@
-package com.ferg.awful.image;
+package com.ferg.awful.graphics;
 
-import com.github.droidfu.cachefu.AbstractCache;
 
 /**
  * Since droid-fu caches don't support changing certain attributes after creation, we need to be
@@ -9,6 +8,6 @@ import com.github.droidfu.cachefu.AbstractCache;
  * 
  * Notably, AwfulApplication implements this.
  */
-public interface DrawableCacheHolder {
-	public AbstractCache<String, byte[]> getDrawableCache();
+public interface GraphicCacheHolder {
+	public GraphicCache getGraphicCache();
 }

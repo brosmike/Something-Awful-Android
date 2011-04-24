@@ -1,4 +1,4 @@
-package com.ferg.awful.image;
+package com.ferg.awful.graphics;
 
 import java.io.InputStream;
 import java.util.Vector;

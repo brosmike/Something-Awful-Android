@@ -2,6 +2,8 @@ package com.ferg.awful;
 
 import android.os.Bundle;
 
+import com.ferg.awful.graphics.GraphicCacheHolder;
+import com.ferg.awful.graphics.GraphicCache;
 import com.github.droidfu.activities.BetterDefaultActivity;
 
 /**
@@ -13,7 +15,7 @@ import com.github.droidfu.activities.BetterDefaultActivity;
  * 
  * This class also provides a few helper methods for grabbing preferences and the like.
  */
-public class AwfulActivity extends BetterDefaultActivity {
+public class AwfulActivity extends BetterDefaultActivity implements GraphicCacheHolder {
 	private ActivityConfigurator mConf;
 	
 	@Override
@@ -52,6 +54,11 @@ public class AwfulActivity extends BetterDefaultActivity {
 	protected void onDestroy() {
 		super.onDestroy();
 		mConf.onDestroy();
+	}
+
+	@Override
+	public GraphicCache getGraphicCache() {
+		return ((AwfulApplication) getApplication()).getGraphicCache();
 	}
 		
 }

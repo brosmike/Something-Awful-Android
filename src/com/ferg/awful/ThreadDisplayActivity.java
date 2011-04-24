@@ -66,8 +66,8 @@ import android.widget.Toast;
 
 import com.commonsware.cwac.adapter.AdapterWrapper;
 import com.ferg.awful.constants.Constants;
+import com.ferg.awful.graphics.GraphicLoader;
 import com.ferg.awful.htmlwidget.HtmlView;
-import com.ferg.awful.image.DrawableManager;
 import com.ferg.awful.network.NetworkUtils;
 import com.ferg.awful.quickaction.ActionItem;
 import com.ferg.awful.quickaction.QuickAction;
@@ -80,7 +80,7 @@ import com.ferg.awful.widget.NumberPicker;
 public class ThreadDisplayActivity extends AwfulActivity implements OnSharedPreferenceChangeListener {
     private static final String TAG = "ThreadDisplayActivity";
 
-    private DrawableManager mDrawableManager;
+    private GraphicLoader mDrawableManager;
     
 	private AwfulThread mThread;
     private FetchThreadTask mFetchTask;
@@ -107,7 +107,7 @@ public class ThreadDisplayActivity extends AwfulActivity implements OnSharedPref
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         
-        mDrawableManager = new DrawableManager(this);
+        mDrawableManager = new GraphicLoader(this);
         mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         mDefaultPostFontSize = mPrefs.getInt("default_post_font_size", 15);
         mDefaultPostFontColor = mPrefs.getInt("default_post_font_color", getResources().getColor(R.color.default_post_font));
