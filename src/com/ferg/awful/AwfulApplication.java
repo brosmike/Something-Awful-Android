@@ -3,11 +3,8 @@ package com.ferg.awful;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
-import com.commonsware.cwac.cache.SimpleWebImageCache;
-import com.ferg.awful.graphics.GraphicCacheHolder;
 import com.ferg.awful.graphics.GraphicCache;
-import com.ferg.awful.thumbnail.ThumbnailBus;
-import com.ferg.awful.thumbnail.ThumbnailMessage;
+import com.ferg.awful.graphics.GraphicCacheHolder;
 import com.github.droidfu.DroidFuApplication;
 import com.github.droidfu.cachefu.AbstractCache;
 
@@ -45,18 +42,5 @@ public class AwfulApplication extends DroidFuApplication implements GraphicCache
 		} else if("internal".equals(storageType)) {
 			mGraphicCache.enableDiskCache(this, AbstractCache.DISK_CACHE_INTERNAL);
 		}
-	}
-	
-	private ThumbnailBus mImageBus=new ThumbnailBus();
-	private SimpleWebImageCache<ThumbnailBus, ThumbnailMessage> mImageCache=
-							new SimpleWebImageCache<ThumbnailBus, ThumbnailMessage>(null, null, 101, mImageBus);
-	
-	
-	ThumbnailBus getImageBus() {
-		return(mImageBus);
-	}
-	
-	SimpleWebImageCache<ThumbnailBus, ThumbnailMessage> getImageCache() {
-		return(mImageCache);
 	}
 }

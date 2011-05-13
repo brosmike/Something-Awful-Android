@@ -64,7 +64,6 @@ import android.widget.SectionIndexer;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.commonsware.cwac.adapter.AdapterWrapper;
 import com.ferg.awful.constants.Constants;
 import com.ferg.awful.graphics.GraphicLoader;
 import com.ferg.awful.htmlwidget.HtmlView;
@@ -74,7 +73,6 @@ import com.ferg.awful.quickaction.QuickAction;
 import com.ferg.awful.reply.Reply;
 import com.ferg.awful.thread.AwfulPost;
 import com.ferg.awful.thread.AwfulThread;
-import com.ferg.awful.thumbnail.ThumbnailAdapter;
 import com.ferg.awful.widget.NumberPicker;
 
 public class ThreadDisplayActivity extends AwfulActivity implements OnSharedPreferenceChangeListener {
@@ -284,6 +282,7 @@ public class ThreadDisplayActivity extends AwfulActivity implements OnSharedPref
                         })
                     .setNegativeButton("Cancel", null)
                     .show();
+                break;
 			case R.id.refresh:
 				mFetchTask = new FetchThreadTask(true);
 				mFetchTask.execute(mThread);
@@ -585,8 +584,7 @@ public class ThreadDisplayActivity extends AwfulActivity implements OnSharedPref
      * Factory method for a post adapter. Deals with a few decorator classes.
      */
     private ListAdapter generateAdapter(ArrayList<AwfulPost> posts) {
-    	AwfulPostAdapterBase base = new AwfulPostAdapterBase(this, R.layout.post_item, posts);
-    	return new AwfulPostAdapter(base);
+    	return new AwfulPostAdapter(this, R.layout.post_item, posts);
     }
 
     /**
@@ -598,45 +596,12 @@ public class ThreadDisplayActivity extends AwfulActivity implements OnSharedPref
      * to the start of the page. In the future this might change to use
      * the page number in an endless list. 
      */
-    public class AwfulPostAdapter extends AdapterWrapper implements SectionIndexer {
-    	private AwfulPostAdapterBase mBaseAdapter;
-    	
-    	public AwfulPostAdapter(AwfulPostAdapterBase base) {
-    		super(new ThumbnailAdapter(    		
-    				ThreadDisplayActivity.this,
-    				base,
-    				((AwfulApplication)getApplication()).getImageCache(),
-        			new int[] {R.id.avatar}));
-    		mBaseAdapter = base;
-    	}
-
-		@Override
-		public int getPositionForSection(int section) {
-			return section;
-		}
-
-		@Override
-		public int getSectionForPosition(int position) {
-			return position;
-		}
-
-		@Override
-		public Object[] getSections() {
-			int count = mBaseAdapter.getCount();
-			String[] sections = new String[count];
-			for(int i=0;i<count;i++) {
-				sections[i] = Integer.toString(i+1);
-			}
-			return sections;
-		}
-    }
-    
-    public class AwfulPostAdapterBase extends ArrayAdapter<AwfulPost> {
+    public class AwfulPostAdapter extends ArrayAdapter<AwfulPost> implements SectionIndexer {
         private ArrayList<AwfulPost> mPosts;
         private int mViewResource;
         private LayoutInflater mInflater;
 
-        public AwfulPostAdapterBase(Context aContext, int aViewResource, ArrayList<AwfulPost> aPosts) {
+        public AwfulPostAdapter(Context aContext, int aViewResource, ArrayList<AwfulPost> aPosts) {
             super(aContext, aViewResource, aPosts);
 
             mInflater     = LayoutInflater.from(aContext);
@@ -808,12 +773,30 @@ public class ThreadDisplayActivity extends AwfulActivity implements OnSharedPref
             	viewHolder.avatar.setVisibility(View.INVISIBLE);
             } else {
             	viewHolder.avatar.setVisibility(View.VISIBLE);
+            	mDrawableManager.fetchDrawableAsync(ThreadDisplayActivity.this, current.getAvatar(), viewHolder.avatar);
             }
-            
-            viewHolder.avatar.setTag(current.getAvatar());
-            
 
             return inflatedView;
         }
+        
+		@Override
+		public int getPositionForSection(int section) {
+			return section;
+		}
+
+		@Override
+		public int getSectionForPosition(int position) {
+			return position;
+		}
+
+		@Override
+		public Object[] getSections() {
+			int count = getCount();
+			String[] sections = new String[count];
+			for(int i=0;i<count;i++) {
+				sections[i] = Integer.toString(i+1);
+			}
+			return sections;
+		}
     }
 }

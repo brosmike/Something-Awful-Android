@@ -180,14 +180,16 @@ public class GraphicLoader {
     	return result;
     }
     
-    private static final int TAG_KEY_URL = 1;
-    private static final int TAG_KEY_STATUS = 2;
-    private static final int TAG_KEY_CALLBACK = 3;
-    
     private static enum FetchStatus {
     	LOADING,
     	SUCCESS,
     	ERROR
+    }
+    
+    private static class GraphicLoadInfo {
+    	public String url;
+    	public FetchStatus status;
+    	public OnGraphicLoadedListener callback;
     }
     
     
@@ -211,28 +213,40 @@ public class GraphicLoader {
      * @param urlString
      *     The URL from which to fetch
      * @param resultView
-     *     Where to put the resulting Drawable on completion. Note that this uses tags from the 
+     *     Where to put the resulting Drawable on completion. Note that this uses the tag from the 
      *     ImageView to determine things like "does the view still want to show the image I loaded"
      */
     public void fetchDrawableAsync(Context ctx, final String urlString, final ImageView resultView) {
-    	FetchStatus status = (FetchStatus) resultView.getTag(TAG_KEY_STATUS);
-    	if(FetchStatus.LOADING.equals(status)) {
-    		cancelDrawableFetch(urlString, (OnGraphicLoadedListener) resultView.getTag(TAG_KEY_CALLBACK));
+    	GraphicLoadInfo info = getLoadInfo(resultView);
+    	
+    	if(FetchStatus.LOADING.equals(info.status)) {
+    		cancelDrawableFetch(urlString, info.callback);
     	}
     	
-    	resultView.setTag(TAG_KEY_URL, urlString);
+    	info.url = urlString;
     	if(urlString == null) {
-    		resultView.setTag(TAG_KEY_CALLBACK, null);
-    		resultView.setTag(TAG_KEY_STATUS, null);
+    		info.callback = null;
+    		info.status = null;
     		return;
     	}
     	
     	OnGraphicLoadedListener callback = new ImageViewPopulator(resultView, urlString);
     	
-    	resultView.setTag(TAG_KEY_CALLBACK, callback);
-    	resultView.setTag(TAG_KEY_STATUS, FetchStatus.LOADING);
+    	info.callback = callback;
+    	info.status = FetchStatus.LOADING;
     	
     	fetchDrawableAsync(ctx, urlString, callback);
+    }
+    
+    private static GraphicLoadInfo getLoadInfo(ImageView view) {
+    	GraphicLoadInfo info = null;
+    	if(view.getTag() == null) {
+    		info = new GraphicLoadInfo();
+    		view.setTag(info);
+    	} else {
+    		info = (GraphicLoadInfo) view.getTag();
+    	}
+    	return info;
     }
     
     private static class ImageViewPopulator implements OnGraphicLoadedListener {
@@ -256,9 +270,11 @@ public class GraphicLoader {
 			ImageView resultView = mView.get();
     		if(resultView == null) return;
     		
-			if(mUrlString.equals(resultView.getTag())) {
-				resultView.setTag(TAG_KEY_CALLBACK, null);
-				resultView.setTag(TAG_KEY_STATUS, FetchStatus.SUCCESS);
+    		GraphicLoadInfo info = getLoadInfo(resultView);
+    		
+			if(mUrlString.equals(info.url)) {
+				info.callback = null;
+				info.status = FetchStatus.SUCCESS;
 				resultView.setImageDrawable(g.toDrawable(ctx.getResources()));
 			}
 		}
@@ -267,13 +283,15 @@ public class GraphicLoader {
 			ImageView resultView = mView.get();
     		if(resultView == null) return;
     		
-    		Log.e(TAG, "Error loading image at "+mUrlString, error);
-    		if(mUrlString.equals(resultView.getTag())) {
-    			resultView.setTag(TAG_KEY_CALLBACK, null);
-    			resultView.setTag(TAG_KEY_STATUS, FetchStatus.ERROR);
+    		GraphicLoadInfo info = getLoadInfo(resultView);
+    		
+			Log.e(TAG, "Error loading image at "+mUrlString, error);
+			if(mUrlString.equals(info.url)) {
+				info.callback = null;
+				info.status = FetchStatus.ERROR;
     			resultView.setImageResource(R.drawable.missing_image);
     		}
-        	}
+		}
     }
         
     /**
